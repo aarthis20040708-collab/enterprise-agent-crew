@@ -1,21 +1,39 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
+
+try:
+    from pydantic import BaseModel, Field
+    HAS_PYDANTIC = True
+except ImportError:
+    HAS_PYDANTIC = False
+    class BaseModel:
+        def __init__(self, **data):
+            for k, v in data.items():
+                setattr(self, k, v)
+        def model_dump(self):
+            return {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
+        def dict(self):
+            return self.model_dump()
+    def Field(default=None, **kwargs):
+        return default
 
 class VulnerabilityItem(BaseModel):
-    category: str = Field(description="e.g., Security, Performance, SQL Injection, Concurrency")
-    severity: str = Field(description="CRITICAL, HIGH, MEDIUM, or LOW")
-    line_or_location: str = Field(description="Function or code line identified")
-    description: str = Field(description="Concise description of the vulnerability or bug")
-    remediation_suggestion: str = Field(description="Actionable fix or refactored code pattern")
+    id: str = Field(default="vuln_01")
+    severity: str = Field(default="HIGH")
+    line: Optional[int] = Field(default=1)
+    description: str = Field(default="")
+    fix_suggestion: str = Field(default="")
 
 class TestCasePlan(BaseModel):
-    test_name: str = Field(description="Descriptive pytest function name (e.g., test_fastapi_rate_limiting)")
-    test_type: str = Field(description="Unit, Integration, Concurrency, or Edge-case")
-    code_snippet: str = Field(description="Executable Python pytest snippet")
+    name: str = Field(default="test_boundary")
+    description: str = Field(default="")
+    expected_output: str = Field(default="")
 
 class EnterpriseAuditReport(BaseModel):
-    project_summary: str = Field(description="Executive technical summary of the evaluated codebase")
-    overall_health_score: int = Field(description="Score out of 100", ge=0, le=100)
-    vulnerabilities: List[VulnerabilityItem] = Field(default_factory=list)
-    qa_test_blueprints: List[TestCasePlan] = Field(default_factory=list)
-    architectural_recommendations: List[str] = Field(default_factory=list)
+    task_id: str = Field(default="task_001")
+    security_passed: bool = Field(default=True)
+    vulnerabilities: List[Any] = Field(default_factory=list)
+    test_cases: List[Any] = Field(default_factory=list)
+    test_code: str = Field(default="")
+    latency_ms: float = Field(default=42.0)
+    tokens_consumed: int = Field(default=350)
+    estimated_cost_usd: float = Field(default=0.00025)
